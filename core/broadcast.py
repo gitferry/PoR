@@ -1,18 +1,35 @@
 import socket
+import threading
+import time
+import random
 
-PORT = 1060
+PORT = 65535
+THRESHOLD = 10
+NUMBER = 1
 NETWORKTYPE = '<broadcast>'
 
-broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-broadcast_socket.sendto('Client broadcast message!'.encode('utf-8'), (NETWORKTYPE, PORT))
+class BroadcastThread(threading.Thread):
+    def __init__(self, type):
+        threading.Thread.__init__(self)
+        self.type = type
 
-receive_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-receive_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    def run(self):
+        transaction = "transaction: Hello World"
+        print "Broadcasting" + transaction
+        broadcast(transaction)
 
-receive_socket.bind(('127.0.0.1', PORT))
-print('Listening for broadcast at ', receive_socket.getsockname())
+def broadcast(message):
+    while True:
+        randomDelay = random.randint(1, 10)
+        time.sleep(randomDelay)
+        broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        broadcast_socket.sendto(message.encode('utf-8'), (NETWORKTYPE, PORT))
+        print message + "sent"
 
-while True:
-    data, address = receive_socket.recvfrom(65535)
-    print('Server received from {}:{}'.format(address, data.decode('utf-8')))
+def main():
+    transactionThread = BroadcastThread(type="transaction")
+    transactionThread.run()
+
+
+main()
