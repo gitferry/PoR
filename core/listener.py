@@ -2,11 +2,13 @@ import socket
 import threading
 import time
 import random
+import os
 
 PORT = 65535
 THRESHOLD = 10
 NUMBER = 1
 NETWORKTYPE = '<broadcast>'
+TRANSACTION_SIZE = 100
 
 class BroadcastThread(threading.Thread):
     def __init__(self, type):
@@ -24,7 +26,7 @@ class BroadcastThread(threading.Thread):
 def broadcast(message):
     broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    broadcast_socket.sendto(message.encode('utf-8'), (NETWORKTYPE, PORT))
+    broadcast_socket.sendto(message + os.urandom(80+100*TRANSACTION_SIZE), (NETWORKTYPE, PORT))
     print message + "sent"
 
 class ListenerThread(threading.Thread):
@@ -38,6 +40,7 @@ class ListenerThread(threading.Thread):
 
 def receive(threshold, number):
     transaction_count = 0
+    blcok_count = 0
 
     receive_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     receive_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -46,8 +49,8 @@ def receive(threshold, number):
     print('Listening for broadcast at ', receive_socket.getsockname())
 
     while True:
-        data, address = receive_socket.recvfrom(65535)
-        print('Server received from {}:{}'.format(address, data.encode('utf-8')))
+        data, address = receive_socket.recvfrom(1999999)
+        print('Server received from {}:{}'.format(address, data))
         if "transaction" in data:
             if transaction_count < threshold:
                 transaction_count += 1
@@ -59,7 +62,8 @@ def receive(threshold, number):
                 blockThread.run()
                 transaction_count = 0
         elif "block" in data:
-            print "block received"
+            blcok_count += 1
+            print "block received, blcok_number: " + str(blcok_count)
 
 
 def main():
