@@ -1,3 +1,4 @@
+import sys
 import socket
 import threading
 import time
@@ -8,25 +9,26 @@ PORT = 65535
 THRESHOLD = 10
 NUMBER = 1
 NETWORKTYPE = '<broadcast>'
-TRANSACTION_SIZE = 100
+TRANSACTION_SIZE = 10
 
 class BroadcastThread(threading.Thread):
-    def __init__(self, type):
+    def __init__(self, type, threshold):
         threading.Thread.__init__(self)
         self.type = type
+        self.threshold = threshold
 
     def run(self):
         randomDelay = random.randint(1, 10)
         time.sleep(randomDelay)
         block = "block: Hello World"
         print "Broadcasting" + block
-        broadcast(block)
+        broadcast(block, self.threshold)
 
 
-def broadcast(message):
+def broadcast(message, threshold):
     broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    broadcast_socket.sendto(message + os.urandom(80+100*TRANSACTION_SIZE), (NETWORKTYPE, PORT))
+    broadcast_socket.sendto(message + os.urandom(8+threshold*TRANSACTION_SIZE), (NETWORKTYPE, PORT))
     print message + "sent"
 
 class ListenerThread(threading.Thread):
@@ -50,24 +52,33 @@ def receive(threshold, number):
 
     while True:
         data, address = receive_socket.recvfrom(1999999)
-        print('Server received from {}:{}'.format(address, data))
+        print('Server received from {}'.format(address))
         if "transaction" in data:
             if transaction_count < threshold:
                 transaction_count += 1
                 print "transaction number: " + str(transaction_count)
             else:
-                # randomNumber = random.randint(NUMBER)
-                # if randomNumber == 1:
-                blockThread = BroadcastThread('block')
-                blockThread.run()
+                randomNumber = random.randint(1, number)
                 transaction_count = 0
+                if randomNumber == 1:
+                    blockThread = BroadcastThread('block', threshold)
+                    blockThread.run()
         elif "block" in data:
             blcok_count += 1
             print "block received, blcok_number: " + str(blcok_count)
 
 
 def main():
-    listenerThread = ListenerThread(THRESHOLD, NUMBER)
+    if sys.argv[1]:
+        threshold = int(sys.argv[1])
+    else:
+        threshold = THRESHOLD
+    if sys.argv[2]:
+        number = int(sys.argv[2])
+    else:
+        number = NUMBER
+    listenerThread = ListenerThread(threshold, number)
     listenerThread.run()
 
-main()
+if __name__ == '__main__':
+    main()

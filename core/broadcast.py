@@ -5,7 +5,6 @@ import random
 import os
 
 PORT = 65535
-THRESHOLD = 10
 NUMBER = 1
 NETWORKTYPE = '<broadcast>'
 TRANSACTION_SIZE = 100
