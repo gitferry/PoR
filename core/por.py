@@ -17,19 +17,31 @@ class BroadcastThread(threading.Thread):
         self.type = type
         self.threshold = threshold
 
-    def run(self):
-        randomDelay = random.randint(1, 10)
-        time.sleep(randomDelay)
-        block = "block: Hello World"
-        print "Broadcasting" + block
-        broadcast(block, self.threshold)
+    def start(self):
+	if self.type == 'block':
+	    block = "block: Hello World"
+	    print "Broadcasting" + block
+	    broadcastBlock(block, self.threshold)
+	elif self.type == 'transaction':
+	    transaction = "transaction: Hello World"
+	    print "Broadcasting" + transaction
+	    broadcastTransaction(transaction)
 
 
-def broadcast(message, threshold):
+def broadcastBlock(message, threshold):
     broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     broadcast_socket.sendto(message + os.urandom(8+threshold*TRANSACTION_SIZE), (NETWORKTYPE, PORT))
     print message + "sent"
+
+def broadcastTransaction(message):
+    while True:
+        randomDelay = random.randint(1, 10)
+        time.sleep(randomDelay)
+        broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        broadcast_socket.sendto(message + os.urandom(TRANSACTION_SIZE), (NETWORKTYPE, PORT))
+        print message + "sent"
 
 class ListenerThread(threading.Thread):
     def __init__(self, threshold, number):
@@ -62,7 +74,7 @@ def receive(threshold, number):
                 transaction_count = 0
                 if randomNumber == 1:
                     blockThread = BroadcastThread('block', threshold)
-                    blockThread.run()
+                    blockThread.start()
         elif "block" in data:
             blcok_count += 1
             print "block received, blcok_number: " + str(blcok_count)
@@ -77,8 +89,14 @@ def main():
         number = int(sys.argv[2])
     else:
         number = NUMBER
+    threads = []
     listenerThread = ListenerThread(threshold, number)
-    listenerThread.run()
+    threads.append(listenerThread)
+    broadcastThread = BroadcastThread('transaction', threshold)
+    threads.append(broadcastThread)
+    for t in threads:
+        t.setDaemon(True)
+        t.start()
 
 if __name__ == '__main__':
     main()
